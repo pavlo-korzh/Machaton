@@ -6,6 +6,8 @@ import com.algolia.search.SearchIndex;
 import com.algolia.search.models.indexing.Query;
 import com.algolia.search.models.settings.IndexSettings;
 import com.epam.restservice.bean.Product;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -38,11 +40,20 @@ public class MachatonController {
 
     @ResponseBody
     @GetMapping("/mach/algolia")
-    public List<Product> search(@RequestHeader(value = "machaton-personalization", required = true) String personalization) {
+    public ResponseEntity<List<Product>> search(@RequestHeader(value = "machaton-personalization", required = true) String personalization) {
 
         Query query = new Query().setFilters(getFilter(getClasses(decodeHeader(personalization))));
 
-        return index.search(query).getHits();
+        return ResponseEntity.ok()
+                .headers(getHeaders())
+                .body(index.search(query).getHits());
+    }
+
+    private HttpHeaders getHeaders() {
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.set("Access-Control-Allow-Origin", "*");
+
+        return responseHeaders;
     }
 
     private String decodeHeader(String header) {
@@ -50,7 +61,7 @@ public class MachatonController {
     }
 
     private List<String> getClasses(String s) {
-        if (s.contains("Macintosh")) {
+        if (s.contains("Macintosh") || s.contains("iPhone")) {
             return Collections.singletonList("A");
         } else if (checkAndroid(s) && checkAndroidVersion(s) < 7) {
             return Arrays.asList("B", "C");
